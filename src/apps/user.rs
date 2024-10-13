@@ -33,6 +33,10 @@ pub struct MimeApps {
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
     #[serde_as(as = "BTreeMap<DisplayFromStr, _>")]
     pub default_apps: BTreeMap<Mime, DesktopList>,
+    #[serde(rename = "Removed Associations")]
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    #[serde_as(as = "BTreeMap<DisplayFromStr, _>")]
+    pub removed_associations: BTreeMap<Mime, DesktopList>,
 }
 
 /// Helper struct for a list of `DesktopHandler`s

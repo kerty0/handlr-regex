@@ -9,12 +9,7 @@ mod common;
 use cli::Cmd;
 
 use clap::CommandFactory;
-use std::{
-    env,
-    error::Error,
-    fs::{create_dir_all, remove_file},
-    path::Path,
-};
+use std::{env, error::Error, fs::create_dir_all, path::Path};
 
 type DynResult = Result<(), Box<dyn Error>>;
 

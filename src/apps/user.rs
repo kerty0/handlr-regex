@@ -676,4 +676,145 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn removed_association() -> Result<()> {
+        let mut mime_apps = MimeApps::default();
+        let config_file = ConfigFile::default();
+
+        // Test with only removed association
+        mime_apps.removed_associations.insert(
+            mime::TEXT_HTML,
+            DesktopList(
+                vec![DesktopHandler::assume_valid("firefox.desktop".into())]
+                    .into(),
+            ),
+        );
+
+        assert!(mime_apps
+            .get_handler_from_user(&mime::TEXT_HTML, &config_file)
+            .is_err());
+
+        // Test with removed association in default apps
+        mime_apps.add_handler(
+            &mime::TEXT_HTML,
+            &DesktopHandler::assume_valid("firefox.desktop".into()),
+            false,
+        )?;
+
+        assert!(mime_apps
+            .get_handler_from_user(&mime::TEXT_HTML, &config_file)
+            .is_err());
+
+        // Test with different association to fall back to
+        mime_apps.add_handler(
+            &Mime::from_str("text/*")?,
+            &DesktopHandler::assume_valid("Helix.desktop".into()),
+            false,
+        )?;
+
+        assert_eq!(
+            mime_apps.get_handler_from_user(&mime::TEXT_HTML, &config_file)?,
+            DesktopHandler::assume_valid("Helix.desktop".into())
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn removed_association_with_wildcard() -> Result<()> {
+        let mut mime_apps = MimeApps::default();
+        let config_file = ConfigFile::default();
+
+        // Test with only removed association
+        mime_apps.removed_associations.insert(
+            Mime::from_str("x-scheme-handler/http*")?,
+            DesktopList(
+                vec![DesktopHandler::assume_valid("firefox.desktop".into())]
+                    .into(),
+            ),
+        );
+
+        // Test multiple matching mimetypes
+        assert!(mime_apps
+            .get_handler_from_user(
+                &Mime::from_str("x-scheme-handler/https")?,
+                &config_file
+            )
+            .is_err());
+        assert!(mime_apps
+            .get_handler_from_user(
+                &Mime::from_str("x-scheme-handler/http")?,
+                &config_file
+            )
+            .is_err());
+        assert!(mime_apps
+            .get_handler_from_user(
+                &Mime::from_str("x-scheme-handler/http*")?,
+                &config_file
+            )
+            .is_err());
+
+        // Test with removed wildcard association in default apps
+        mime_apps.add_handler(
+            &Mime::from_str("x-scheme-handler/http*")?,
+            &DesktopHandler::assume_valid("firefox.desktop".into()),
+            false,
+        )?;
+
+        // Test multiple matching mimetypes
+        assert!(mime_apps
+            .get_handler_from_user(
+                &Mime::from_str("x-scheme-handler/https")?,
+                &config_file
+            )
+            .is_err());
+        assert!(mime_apps
+            .get_handler_from_user(
+                &Mime::from_str("x-scheme-handler/http")?,
+                &config_file
+            )
+            .is_err());
+        assert!(mime_apps
+            .get_handler_from_user(
+                &Mime::from_str("x-scheme-handler/http*")?,
+                &config_file
+            )
+            .is_err());
+
+        // Test with expanded wildcard
+        mime_apps.remove_handler(
+            &Mime::from_str("x-scheme-handler/http*")?,
+            &DesktopHandler::assume_valid("firefox.desktop".into()),
+        );
+
+        // Test with removed wildcard association in default apps
+        mime_apps.add_handler(
+            &Mime::from_str("x-scheme-handler/http*")?,
+            &DesktopHandler::assume_valid("firefox.desktop".into()),
+            true,
+        )?;
+
+        // Test multiple matching mimetypes
+        assert!(mime_apps
+            .get_handler_from_user(
+                &Mime::from_str("x-scheme-handler/https")?,
+                &config_file
+            )
+            .is_err());
+        assert!(mime_apps
+            .get_handler_from_user(
+                &Mime::from_str("x-scheme-handler/http")?,
+                &config_file
+            )
+            .is_err());
+        assert!(mime_apps
+            .get_handler_from_user(
+                &Mime::from_str("x-scheme-handler/http*")?,
+                &config_file
+            )
+            .is_err());
+
+        Ok(())
+    }
 }

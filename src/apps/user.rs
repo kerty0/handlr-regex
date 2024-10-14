@@ -207,7 +207,6 @@ impl MimeApps {
     }
 
     /// Get the handler associated with a given mime from mimeapps.list's default apps
-    #[mutants::skip] // Cannot entirely test, namely cannot test selector or filtering
     pub fn get_handler_from_user(
         &self,
         mime: &Mime,
@@ -220,43 +219,55 @@ impl MimeApps {
             .get(mime)
             .or_else(|| self.get_from_wildcard(mime))
         {
-            Some(handlers) => {
-                // Prepares for selector and filters out apps that do not exist
-                let handlers = handlers
-                    .iter()
-                    .flat_map(|h| -> Result<(&DesktopHandler, String)> {
-                        // Filtering breaks testing, so treat every app as valid
-                        if cfg!(test) {
-                            Ok((h, h.to_string()))
-                        } else {
-                            Ok((h, h.get_entry()?.name))
-                        }
-                    })
-                    .collect_vec();
-
-                if config_file.enable_selector && handlers.len() > 1 {
-                    let handler = {
-                        let name = select(
-                            &config_file.selector,
-                            handlers.iter().map(|h| h.1.clone()),
-                        )?;
-
-                        handlers
-                            .into_iter()
-                            .find(|h| h.1 == name)
-                            .ok_or(error)?
-                            .0
-                            .clone()
-                    };
-
-                    Ok(handler)
-                } else {
-                    Ok(handlers.first().ok_or(error)?.0.clone())
-                }
-            }
+            Some(handlers) => self.select_handler(handlers, mime, config_file),
             None => Err(error),
         }
         .or_else(|_| self.get_handler_from_added_associations(mime))
+    }
+
+    /// Select handler from given list, possibly using the selector
+    #[mutants::skip] // Cannot entirely test, namely cannot test selector or filtering
+    fn select_handler(
+        &self,
+        handlers: &DesktopList,
+        mime: &Mime,
+        config_file: &ConfigFile,
+    ) -> Result<DesktopHandler> {
+        let error = || Error::NotFound(mime.to_string());
+
+        // Prepares for selector and filters out apps that do not exist
+        let handlers = handlers
+            .iter()
+            .flat_map(|h| -> Result<(&DesktopHandler, String)> {
+                // Filtering breaks testing, so treat every app as valid
+                if cfg!(test) {
+                    Ok((h, h.to_string()))
+                } else {
+                    Ok((h, h.get_entry()?.name))
+                }
+            })
+            .collect_vec();
+
+        // Run selector if necessary
+        if config_file.enable_selector && handlers.len() > 1 {
+            let handler = {
+                let name = select(
+                    &config_file.selector,
+                    handlers.iter().map(|h| h.1.clone()),
+                )?;
+
+                handlers
+                    .into_iter()
+                    .find(|h| h.1 == name)
+                    .ok_or_else(error)?
+                    .0
+                    .clone()
+            };
+
+            Ok(handler)
+        } else {
+            Ok(handlers.first().ok_or_else(error)?.0.clone())
+        }
     }
 
     /// Get the handler associated with a given mime from mimeapps.list's added associations

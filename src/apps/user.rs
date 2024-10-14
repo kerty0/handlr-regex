@@ -256,6 +256,19 @@ impl MimeApps {
             }
             None => Err(error),
         }
+        .or_else(|_| self.get_handler_from_added_associations(mime))
+    }
+
+    /// Get the handler associated with a given mime from mimeapps.list's added associations
+    /// If there is none, default to the system apps
+    fn get_handler_from_added_associations(
+        &self,
+        mime: &Mime,
+    ) -> Result<DesktopHandler> {
+        self.added_associations
+            .get(mime)
+            .and_then(|h| h.front().cloned())
+            .ok_or_else(|| Error::NotFound(mime.to_string()))
     }
 
     /// Get the path to the user's mimeapps.list file

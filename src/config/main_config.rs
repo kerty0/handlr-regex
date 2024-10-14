@@ -57,24 +57,8 @@ impl Config {
     pub fn get_handler(&self, mime: &Mime) -> Result<DesktopHandler> {
         match self.mime_apps.get_handler_from_user(mime, &self.config) {
             Err(e) if matches!(e, Error::Cancelled) => Err(e),
-            h => h.or_else(|_| self.get_handler_from_added_associations(mime)),
+            h => h.or_else(|_| self.system_apps.get_handler(mime)),
         }
-    }
-
-    /// Get the handler associated with a given mime from mimeapps.list's added associations
-    /// If there is none, default to the system apps
-    fn get_handler_from_added_associations(
-        &self,
-        mime: &Mime,
-    ) -> Result<DesktopHandler> {
-        self.mime_apps
-            .added_associations
-            .get(mime)
-            .map_or_else(
-                || self.system_apps.get_handler(mime),
-                |h| h.front().cloned(),
-            )
-            .ok_or_else(|| Error::NotFound(mime.to_string()))
     }
 
     /// Given a mime and arguments, launch the associated handler with the arguments

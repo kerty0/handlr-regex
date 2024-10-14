@@ -225,6 +225,17 @@ impl MimeApps {
         .or_else(|_| self.get_handler_from_added_associations(mime))
     }
 
+    pub fn is_removed_association(
+        &self,
+        mime: &Mime,
+        handler: &DesktopHandler,
+    ) -> bool {
+        self.removed_associations
+            .get(mime)
+            .map(|list| list.contains(handler))
+            .unwrap_or(false)
+    }
+
     /// Select handler from given list, possibly using the selector
     #[mutants::skip] // Cannot entirely test, namely cannot test selector or filtering
     fn select_handler(

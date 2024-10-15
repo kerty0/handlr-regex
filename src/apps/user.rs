@@ -257,10 +257,21 @@ impl MimeApps {
         mime: &Mime,
         handler: &DesktopHandler,
     ) -> bool {
-        self.removed_associations
-            .get(mime)
-            .map(|list| list.contains(handler))
-            .unwrap_or(false)
+        let wildcard = WildMatch::new(mime.as_ref());
+        mime_types()
+            .iter()
+            .filter(|mime| wildcard.matches(mime))
+            .map(|mime| {
+                self.removed_associations
+                    .get(&Mime::from_str(mime).unwrap())
+                    .map(|handlers| handlers.contains(handler))
+                    .unwrap_or(false)
+            })
+            .any(|x| x)
+        // self.removed_associations
+        //     .get(mime)
+        //     .map(|list| list.contains(handler))
+        //     .unwrap_or(false)
     }
 
     /// Select handler from given list, possibly using the selector

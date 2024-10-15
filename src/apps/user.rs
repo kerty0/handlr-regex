@@ -181,11 +181,29 @@ impl MimeApps {
     }
 
     /// Get a list of handlers associated with a wildcard mime
-    fn get_from_wildcard(&self, mime: &Mime) -> Option<&DesktopList> {
+    fn get_from_wildcard(&self, mime: &Mime) -> Option<DesktopList> {
         // Get the handlers that wildcard match the given mime
-        let associations = self.default_apps.iter().filter(|(m, _)| {
-            wildmatch::WildMatch::new(m.as_ref()).matches(mime.as_ref())
-        });
+        let associations = self
+            .default_apps
+            .iter()
+            .filter(|(m, _)| {
+                wildmatch::WildMatch::new(m.as_ref()).matches(mime.as_ref())
+            })
+            // Discard associations that have been removed
+            .map(|(m, DesktopList(handlers))| {
+                (
+                    m,
+                    DesktopList(
+                        handlers
+                            .clone()
+                            .into_iter()
+                            .filter(|handler| {
+                                !self.is_removed_association(mime, handler)
+                            })
+                            .collect(),
+                    ),
+                )
+            });
 
         // Get the length of the longest wildcard that matches
         // Assuming the longest match is the best match
@@ -212,17 +230,26 @@ impl MimeApps {
         mime: &Mime,
         config_file: &ConfigFile,
     ) -> Result<DesktopHandler> {
-        let error = Error::NotFound(mime.to_string());
         // Check for an exact match first and then fall back to wildcard
-        match self
-            .default_apps
+        self.default_apps
             .get(mime)
+            .map(|DesktopList(handlers)| {
+                DesktopList(
+                    handlers
+                        .clone()
+                        .into_iter()
+                        .filter(|handler| {
+                            !self.is_removed_association(mime, handler)
+                        })
+                        .collect(),
+                )
+            })
             .or_else(|| self.get_from_wildcard(mime))
-        {
-            Some(handlers) => self.select_handler(handlers, mime, config_file),
-            None => Err(error),
-        }
-        .or_else(|_| self.get_handler_from_added_associations(mime))
+            .ok_or_else(|| Error::NotFound(mime.to_string()))
+            .and_then(|handlers| {
+                self.select_handler(&handlers, mime, config_file)
+            })
+            .or_else(|_| self.get_handler_from_added_associations(mime))
     }
 
     pub fn is_removed_association(

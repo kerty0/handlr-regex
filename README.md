@@ -101,7 +101,7 @@ Feel free to open an issue or pull request if there's a better way to handle thi
 
 ## Setting multiple handlers
 
-1) Open `~/.config/handlr/handlr.toml` and set `enable_selector = true`. Optionally, you can also tweak the `selector` to your selector command (using e.g. rofi or dmenu).
+1) Open `~/.config/handlr/handlr.toml` and set `enable_selector = true`. Optionally, you can also tweak the `selector` to your selector command (using e.g. rofi or dmenu) or set `default_entry` to add to list of commands (e.g. `default_entry = "default.desktop"`).
 
 2) Add a second/third/whatever handler using `handlr add`, for example
 ```

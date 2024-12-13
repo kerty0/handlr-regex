@@ -1,6 +1,6 @@
 use crate::{
     cli::SelectorArgs,
-    common::{RegexApps, RegexHandler, UserPath},
+    common::{DesktopHandler, RegexApps, RegexHandler, UserPath},
     error::Result,
 };
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,8 @@ pub struct ConfigFile {
     pub enable_selector: bool,
     /// The selector command to run
     pub selector: String,
+    /// Default desktop handler to add to selector
+    pub default_handler: Option<DesktopHandler>,
     /// Extra arguments to pass to terminal application
     pub term_exec_args: Option<String>,
     /// Whether to expand wildcards when saving mimeapps.list
@@ -28,6 +30,7 @@ impl Default for ConfigFile {
         ConfigFile {
             enable_selector: false,
             selector: "rofi -dmenu -i -p 'Open With: '".into(),
+            default_handler: None,
             // Required for many xterm-compatible terminal emulators
             // Unfortunately, messes up emulators that don't accept it
             term_exec_args: Some("-e".into()),

@@ -228,6 +228,11 @@ impl MimeApps {
                             Ok((h, h.get_entry()?.name))
                         }
                     })
+                    .chain(config_file.default_handler.iter().flat_map(
+                        |d| -> Result<(&DesktopHandler, String)> {
+                            Ok((d, d.get_entry()?.name))
+                        },
+                    ))
                     .collect_vec();
 
                 if config_file.enable_selector && handlers.len() > 1 {

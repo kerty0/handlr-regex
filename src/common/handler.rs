@@ -5,7 +5,7 @@ use crate::{
 };
 use derive_more::Deref;
 use enum_dispatch::enum_dispatch;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::{
     convert::TryFrom,
     ffi::OsString,
@@ -44,9 +44,7 @@ pub trait Handleable {
 }
 
 /// Represents a handler defined in a desktop file
-#[derive(
-    Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize,
-)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub struct DesktopHandler(OsString);
 
 impl Display for DesktopHandler {
@@ -65,6 +63,15 @@ impl FromStr for DesktopHandler {
 impl Handleable for DesktopHandler {
     fn get_entry(&self) -> Result<DesktopEntry> {
         DesktopEntry::try_from(Self::get_path(&self.0)?)
+    }
+}
+
+impl<'de> Deserialize<'de> for DesktopHandler {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(DesktopHandler(String::deserialize(deserializer)?.into()))
     }
 }
 
